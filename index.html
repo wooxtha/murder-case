@@ -32,6 +32,12 @@
     stroke-opacity: 0.6;
     stroke-width: 2px;
   }
+  .link-label {
+    font-size: 10px;
+    fill: #555;
+    pointer-events: none;
+    font-style: italic;
+  }
   .tooltip {
     position: absolute;
     background: #fff;
@@ -41,6 +47,7 @@
     border-radius: 4px;
     pointer-events: none;
     box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    max-width: 250px;
   }
 </style>
 </head>
@@ -50,7 +57,7 @@
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
-// Data: nodes and links
+// Nodes (people/entities)
 const nodes = [
   { id: "Christina Lee (Victim)" },
   { id: "Stephen Glisson" },
@@ -65,21 +72,22 @@ const nodes = [
   { id: "Charles Park" }
 ];
 
+// Links with relationship and short context for tooltip
 const links = [
-  { source: "Christina Lee (Victim)", target: "Stephen Glisson", relation: "Law firm partners" },
-  { source: "Christina Lee (Victim)", target: "Michelle Ho", relation: "Law firm partners" },
-  { source: "Stephen Glisson", target: "Bo Jing", relation: "Client meeting" },
-  { source: "Michelle Ho", target: "Simon Carter", relation: "Client meeting" },
-  { source: "Michelle Ho", target: "Charles Park", relation: "Married" },
-  { source: "Clarence Cheung", target: "Stephen Glisson", relation: "Asked for promotion" },
-  { source: "Clarence Cheung", target: "Bo Jing", relation: "Drafted will" },
-  { source: "Clarence Cheung", target: "Tan Choon Beng", relation: "Side job and dinner" },
-  { source: "Jason Lee", target: "Christina Lee (Victim)", relation: "Cousins" },
-  { source: "Jason Lee", target: "Sophia Ibrahim", relation: "Worked together" },
-  { source: "Jason Lee", target: "Clarence Cheung", relation: "Co-workers" },
-  { source: "Sophia Ibrahim", target: "Christina Lee (Victim)", relation: "Conflict incident" },
-  { source: "Lilyan Lam", target: "Christina Lee (Victim)", relation: "Found the body" },
-  { source: "Tan Choon Beng", target: "Charles Park", relation: "Side business" }
+  { source: "Christina Lee (Victim)", target: "Stephen Glisson", relation: "Partners", context: "Law firm partners working closely together." },
+  { source: "Christina Lee (Victim)", target: "Michelle Ho", relation: "Partners", context: "Law firm partners working closely together." },
+  { source: "Stephen Glisson", target: "Bo Jing", relation: "Client", context: "Stephen had recent meetings with client Bo Jing." },
+  { source: "Michelle Ho", target: "Simon Carter", relation: "Client", context: "Michelle was involved in a case with client Simon." },
+  { source: "Michelle Ho", target: "Charles Park", relation: "Husband", context: "Michelle is married to Charles Park." },
+  { source: "Clarence Cheung", target: "Stephen Glisson", relation: "Promotion request", context: "Clarence asked Stephen for a promotion recently." },
+  { source: "Clarence Cheung", target: "Bo Jing", relation: "Will Draft", context: "Clarence drafted a will for Bo Jing." },
+  { source: "Clarence Cheung", target: "Tan Choon Beng", relation: "Side job", context: "Clarence and Tan share a side business and dinner meetings." },
+  { source: "Jason Lee", target: "Christina Lee (Victim)", relation: "Cousin", context: "Jason is Christina's cousin." },
+  { source: "Jason Lee", target: "Sophia Ibrahim", relation: "Co-worker", context: "Jason and Sophia worked together." },
+  { source: "Jason Lee", target: "Clarence Cheung", relation: "Co-worker", context: "Jason and Clarence are co-workers." },
+  { source: "Sophia Ibrahim", target: "Christina Lee (Victim)", relation: "Conflict", context: "Sophia had a recent conflict with Christina." },
+  { source: "Lilyan Lam", target: "Christina Lee (Victim)", relation: "Found body", context: "Lilyan discovered Christina's body." },
+  { source: "Tan Choon Beng", target: "Charles Park", relation: "Side business", context: "Tan and Charles run a side business together." }
 ];
 
 // Setup SVG and simulation
@@ -91,13 +99,14 @@ const tooltip = d3.select("body").append("div")
   .attr("class", "tooltip")
   .style("opacity", 0);
 
+// Simulation forces
 const simulation = d3.forceSimulation(nodes)
   .force("link", d3.forceLink(links).id(d => d.id).distance(150).strength(0.7))
   .force("charge", d3.forceManyBody().strength(-400))
   .force("center", d3.forceCenter(width / 2, height / 2))
   .force("collide", d3.forceCollide(50));
 
-// Draw links (edges)
+// Draw links (lines)
 const link = svg.append("g")
   .attr("stroke", "#999")
   .attr("stroke-opacity", 0.6)
@@ -108,7 +117,7 @@ const link = svg.append("g")
   .attr("stroke-width", 2)
   .on("mouseover", (event, d) => {
     tooltip.transition().duration(200).style("opacity", 0.9);
-    tooltip.html(`<strong>Relationship:</strong> ${d.relation}`)
+    tooltip.html(`<strong>Relationship:</strong> ${d.relation}<br/><em>${d.context}</em>`)
       .style("left", (event.pageX + 10) + "px")
       .style("top", (event.pageY - 28) + "px");
   })
@@ -116,7 +125,16 @@ const link = svg.append("g")
     tooltip.transition().duration(500).style("opacity", 0);
   });
 
-// Draw nodes
+// Add link labels (text on lines)
+const linkLabels = svg.append("g")
+  .selectAll("text")
+  .data(links)
+  .join("text")
+  .attr("class", "link-label")
+  .attr("text-anchor", "middle")
+  .text(d => d.relation);
+
+// Draw nodes (groups)
 const node = svg.append("g")
   .attr("stroke", "#333")
   .attr("stroke-width", 1.5)
@@ -126,16 +144,18 @@ const node = svg.append("g")
   .attr("class", "node")
   .call(drag(simulation));
 
+// Circles
 node.append("circle")
   .attr("r", 20)
   .attr("fill", "#66b3ff");
 
+// Node labels (names)
 node.append("text")
   .text(d => d.id)
   .attr("x", 25)
   .attr("y", 6);
 
-// Drag behavior
+// Dragging functionality
 function drag(simulation) {
   function dragstarted(event, d) {
     if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -157,20 +177,25 @@ function drag(simulation) {
     .on("end", dragended);
 }
 
-// Update simulation on every tick
+// Update positions on every tick
 simulation.on("tick", () => {
-  // Update link positions
+  // Update links
   link
     .attr("x1", d => d.source.x)
     .attr("y1", d => d.source.y)
     .attr("x2", d => d.target.x)
     .attr("y2", d => d.target.y);
 
-  // Update node positions
+  // Update link labels — position at midpoint of each link
+  linkLabels
+    .attr("x", d => (d.source.x + d.target.x) / 2)
+    .attr("y", d => (d.source.y + d.target.y) / 2 - 5);
+
+  // Update nodes
   node.attr("transform", d => `translate(${d.x},${d.y})`);
 });
 
-// Resize SVG on window resize
+// Resize svg on window resize
 window.addEventListener('resize', () => {
   svg.attr("width", window.innerWidth).attr("height", window.innerHeight);
 });
@@ -178,3 +203,4 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
