@@ -21,11 +21,17 @@
     fill: #66b3ff;
     cursor: pointer;
   }
-  .node text {
-    font-size: 12px;
+  .node text.name {
+    font-size: 13px;
     pointer-events: none;
     fill: #000;
     font-weight: bold;
+  }
+  .node text.title {
+    font-size: 11px;
+    pointer-events: none;
+    fill: #555;
+    font-style: italic;
   }
   .link {
     stroke: #999;
@@ -57,19 +63,19 @@
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
-// Nodes (people/entities)
+// Nodes with a title/context property to show below the name
 const nodes = [
-  { id: "Christina Lee (Victim)" },
-  { id: "Stephen Glisson" },
-  { id: "Michelle Ho" },
-  { id: "Clarence Cheung" },
-  { id: "Jason Lee" },
-  { id: "Sophia Ibrahim" },
-  { id: "Lilyan Lam" },
-  { id: "Simon Carter" },
-  { id: "Bo Jing" },
-  { id: "Tan Choon Beng" },
-  { id: "Charles Park" }
+  { id: "Christina Lee (Victim)", title: "Victim of murder case" },
+  { id: "Stephen Glisson", title: "Law firm partner" },
+  { id: "Michelle Ho", title: "Law firm partner" },
+  { id: "Clarence Cheung", title: "Junior partner, asked promotion" },
+  { id: "Jason Lee", title: "Cousin of Christina" },
+  { id: "Sophia Ibrahim", title: "Co-worker, had conflict with Christina" },
+  { id: "Lilyan Lam", title: "Employee who found the body" },
+  { id: "Simon Carter", title: "Client" },
+  { id: "Bo Jing", title: "Client, involved in will draft" },
+  { id: "Tan Choon Beng", title: "Business partner with Clarence" },
+  { id: "Charles Park", title: "Michelle's husband" }
 ];
 
 // Links with relationship and short context for tooltip
@@ -149,11 +155,19 @@ node.append("circle")
   .attr("r", 20)
   .attr("fill", "#66b3ff");
 
-// Node labels (names)
+// Node name labels (top)
 node.append("text")
-  .text(d => d.id)
+  .attr("class", "name")
   .attr("x", 25)
-  .attr("y", 6);
+  .attr("y", 0)
+  .text(d => d.id);
+
+// Node title/context labels (below name)
+node.append("text")
+  .attr("class", "title")
+  .attr("x", 25)
+  .attr("y", 15)
+  .text(d => d.title);
 
 // Dragging functionality
 function drag(simulation) {
@@ -191,7 +205,7 @@ simulation.on("tick", () => {
     .attr("x", d => (d.source.x + d.target.x) / 2)
     .attr("y", d => (d.source.y + d.target.y) / 2 - 5);
 
-  // Update nodes
+  // Update nodes position
   node.attr("transform", d => `translate(${d.x},${d.y})`);
 });
 
@@ -203,4 +217,5 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
